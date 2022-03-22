@@ -1,0 +1,7 @@
+<Project>
+	<PropertyGroup>
+		<Version>0.8.0</Version>
+		<Nullable>enable</Nullable>
+		<LangVersion>9</LangVersion>
+	</PropertyGroup>
+</Project>
