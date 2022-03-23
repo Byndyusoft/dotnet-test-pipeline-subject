@@ -1,0 +1,33 @@
+version: '3.7'
+
+services:     
+    
+  api:
+    build: 
+      context: .
+      dockerfile: ./src/Byndyusoft.Project.Api/api.dockerfile
+    image: byndyusoft/pipeline-test-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://*:5000
+    ports:
+      - "5000:5000"
+    networks:
+      - network
+     
+  worker:
+    build: 
+      context: .
+      dockerfile: ./src/Byndyusoft.Project.Worker/worker.dockerfile
+    image: byndyusoft/pipeline-test-worker
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://*:5001
+    ports:
+      - "5001:5001"
+    networks:
+      - network
+
+networks:
+  network:
+    name: development

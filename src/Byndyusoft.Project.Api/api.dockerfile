@@ -1,6 +1,6 @@
 FROM mcr.microsoft.com/dotnet/sdk:5.0 as build
-WORKDIR /src
-COPY . .
+COPY ./src ./src
+WORKDIR /src/Byndyusoft.Project.Api
 RUN dotnet publish -o /out -c Release
 
 
