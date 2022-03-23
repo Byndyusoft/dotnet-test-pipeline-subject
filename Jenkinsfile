@@ -13,40 +13,51 @@ spec:
 ''') {
     node(POD_LABEL) {
         checkout scm
-        /*String nexusUrl = "container.k8s.byndyusoft.com"
-        String imageTag =  sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
-        String serviceName = "extractor_expert"
-        String branchName = env.BRANCH_NAME*/
-        /*withCredentials([
+        String registryUrl = "container.k8s.byndyusoft.com"
+        String branchName = env.BRANCH_NAME
+        withCredentials([
             usernamePassword(credentialsId: '534bb51a-7be9-489d-93a9-68b3578405b3', 
             usernameVariable: 'user_nexus', 
             passwordVariable: 'pass_nexus'
-        )]) {*/
-          container("docker") { 
-              // docker build -t <repoName>/<imageName>:<tagName> .
-          // docker push yourRegistryHost:<port>/tremaine/hello-world:1.0.0-SNAPSHOT
-                def allPackageJsonFiles = findFiles(glob: '**/*.dockerfile')
-                for (def item : allPackageJsonFiles) {
-                    println(item)
-                    directory = sh(returnStdout: true, script: "dirname ${item.path}").trim()
-                    appName = sh(returnStdout: true, script: "basename ${item.path}").trim()
-                    
-                }
-              /*sh "docker login -u ${user_nexus} -p ${pass_nexus} ${nexusUrl}"
-              stage("Build Image") {
-                sh "DOCKER_BUILDKIT=1 docker build -t ${nexusUrl}/${serviceName}:${branchName} ."
-              }
-              stage("Push Image") {
-                sh "docker image ls"
-                sh "docker push ${nexusUrl}/${serviceName}:${branchName}"
-              }
-              sh "docker rmi ${nexusUrl}/${serviceName}:${branchName}"
-              sh "docker logout"*/
+        )]) {
+            container("docker") {
+                sh "docker login -u ${user_nexus} -p ${pass_nexus} ${registryUrl}"
             }
-          //}
+        }
+
+        def allPackageJsonFiles = sh(returnStdout: true, script: "find -name '*.dockerfile'").trim().split("\n")
+        for (def item : allPackageJsonFiles) {
+            directory = sh(returnStdout: true, script: "dirname ${item}").trim()
+            dockerFile = sh(returnStdout: true, script: "basename ${item}").trim()
+            String image = ""
+            stage("Build Image ${dockerFile}") {
+                image = BuildImage(directory, dockerFile, registryUrl, branchName)
+            }
+            stage("Push Image ${image}") {
+                PushImage(image)
+            }
+        }
+        container("docker") {
+            sh "docker logout"
+        }
     }
 }
 
-String build_image(dirPath, appName, branchName) {
-    println("todo")
+String BuildImage(String dirPath, String dockerFile, String registryUrl, String branchName) {
+    println(dockerFile)
+    String appName = dockerFile.split(/\./)[0]
+    String image = "${registryUrl}/${appName}:${branchName.replace("/", "-")}"
+    dir(dirPath) {
+        container("docker") { 
+            sh "DOCKER_BUILDKIT=1 docker build -t ${image} --file ${dockerFile}  ."
+        }
+    }
+    return image
+}
+
+void PushImage(String image) {
+    container("docker") {
+        sh "docker push ${image}"
+        sh "docker rmi ${image}"
+    }
 }
